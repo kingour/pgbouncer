@@ -1736,6 +1736,37 @@ bool client_proto(SBuf *sbuf, SBufEvent evtype, struct MBuf *data)
 		disconnect_server(client->link, false, "server connection closed");
 		break;
 	case SBUF_EV_READ:
+		/* parse PROXY protocol v1 header if enabled */
+		if (cf_proxy_protocol && !client->proxy_header_parsed) {
+			const uint8_t *raw = client->sbuf.io->buf + client->sbuf.io->parse_pos;
+			unsigned avail = client->sbuf.io->recv_pos - client->sbuf.io->parse_pos;
+			unsigned i;
+			for (i = 0; i + 1 < avail; i++) {
+				if (raw[i] == '\r' && raw[i + 1] == '\n')
+					break;
+			}
+			if (i + 1 >= avail) {
+				if (avail >= 108)
+					disconnect_client(client, true, "PROXY protocol header too long");
+				return false;
+			}
+			if (i < 107) {
+				char line[108], proto[16], src_ip[64], dst_ip[64];
+				int src_port, dst_port;
+				memcpy(line, raw, i);
+				line[i] = '\0';
+				if (sscanf(line, "PROXY %15s %63s %63s %d %d",
+					   proto, src_ip, dst_ip, &src_port, &dst_port) == 5 &&
+				    strcmp(proto, "UNKNOWN") != 0) {
+					snprintf(client->proxy_client_addr,
+						 sizeof(client->proxy_client_addr),
+						 "%s", src_ip);
+				}
+			}
+			client->proxy_header_parsed = true;
+			sbuf_prepare_skip(&client->sbuf, i + 2);
+			return true;
+		}
 		/* Wait until full packet headers is available. */
 		if (incomplete_header(data)) {
 			slog_noise(client, "C: got partial header, trying to wait a bit");

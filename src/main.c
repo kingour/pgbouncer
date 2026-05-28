@@ -185,6 +185,7 @@ int cf_log_connections;
 int cf_log_disconnections;
 int cf_log_pooler_errors;
 int cf_application_name_add_host;
+int cf_proxy_protocol;
 
 int cf_client_tls_sslmode;
 char *cf_client_tls_protocols;
@@ -317,6 +318,7 @@ static const struct CfKey bouncer_params [] = {
 	CF_ABS("reserve_pool_size", CF_INT, cf_res_pool_size, 0, "0"),
 	CF_ABS("reserve_pool_timeout", CF_TIME_USEC, cf_res_pool_timeout, 0, "5"),
 	CF_ABS("resolv_conf", CF_STR, cf_resolv_conf, CF_NO_RELOAD, ""),
+	CF_ABS("proxy_protocol", CF_INT, cf_proxy_protocol, 0, "0"),
 	CF_ABS("sbuf_loopcnt", CF_INT, cf_sbuf_loopcnt, 0, "5"),
 	CF_ABS("scram_iterations", CF_INT, cf_scram_iterations, 0, SCRAM_DEFAULT_ITERATIONS),
 	CF_ABS("server_check_delay", CF_TIME_USEC, cf_server_check_delay, 0, "30"),

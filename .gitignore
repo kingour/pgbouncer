@@ -37,3 +37,6 @@ venv
 /uncrustify
 
 __pycache__/
+.idea
+.omc
+.claude

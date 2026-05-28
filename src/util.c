@@ -63,7 +63,15 @@ int log_socket_prefix(enum LogLevel lev, void *ctx, char *dst, unsigned int dstl
 		host = pga_ntop(&sock->remote_addr, host6, sizeof(host6));
 	}
 
-	if (pga_family(&sock->remote_addr) == AF_INET6) {
+	if (sock->proxy_client_addr[0]) {
+		/* PROXY protocol: show real_ip:nginx_ip:port */
+		if (peer_id) {
+			return snprintf(dst, dstlen, "%c-%p: peer-%d@%s:%s:%d ",
+					stype, sock, peer_id, sock->proxy_client_addr, host, port);
+		}
+		return snprintf(dst, dstlen, "%c-%p: %s/%s@%s:%s:%d ",
+				stype, sock, db, user, sock->proxy_client_addr, host, port);
+	} else if (pga_family(&sock->remote_addr) == AF_INET6) {
 		if (peer_id) {
 			return snprintf(dst, dstlen, "%c-%p: peer-%d@[%s]:%d ",
 					stype, sock, peer_id, host, port);
