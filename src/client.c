@@ -1741,6 +1741,15 @@ bool client_proto(SBuf *sbuf, SBufEvent evtype, struct MBuf *data)
 			const uint8_t *raw = client->sbuf.io->buf + client->sbuf.io->parse_pos;
 			unsigned avail = client->sbuf.io->recv_pos - client->sbuf.io->parse_pos;
 			unsigned i;
+			/* Wait until we have enough bytes to identify the signature */
+			if (avail < 6)
+				return false;
+			/* Auto-detect: if no PROXY signature, treat as a direct connection
+			 * and fall through to normal packet processing without skipping. */
+			if (memcmp(raw, "PROXY ", 6) != 0) {
+				client->proxy_header_parsed = true;
+				goto process_packet;
+			}
 			for (i = 0; i + 1 < avail; i++) {
 				if (raw[i] == '\r' && raw[i + 1] == '\n')
 					break;
@@ -1767,6 +1776,7 @@ bool client_proto(SBuf *sbuf, SBufEvent evtype, struct MBuf *data)
 			sbuf_prepare_skip(&client->sbuf, i + 2);
 			return true;
 		}
+		process_packet:
 		/* Wait until full packet headers is available. */
 		if (incomplete_header(data)) {
 			slog_noise(client, "C: got partial header, trying to wait a bit");
